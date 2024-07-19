@@ -37,10 +37,11 @@ function render_downloadable(text: string, deck: string) {
 }
 
 const columns: TableColumnsType<Data> = [
-  {title: '时间', key: 'time', width: 200, render: (_, d) => render_time(d.start_time, d.end_time)},
-  {title: '玩家A', dataIndex: 'username_a', width: 'calc(50%-250)', key: 'playera', align: 'end', render: (v,d) => render_downloadable(v,d.user_deck_a)},
+  {title: '时间', key: 'time', width: 220, render: (_, d) => render_time(d.start_time, d.end_time)},
+  {title: '房间', dataIndex: 'arena', key: 'arena', render: (v) => v.split("/")[1]},
+  {title: '玩家A', dataIndex: 'username_a', key: 'playera', align: 'end', render: (v,d) => render_downloadable(v,d.user_deck_a)},
   {title: '比分', key: 'score', width: 20, render: (_, d) => `${d.user_score_a}:${d.user_score_b}`},
-  {title: '玩家B', dataIndex: 'username_b', width: 'calc(50%-250)', key: 'playerb', render: (v,d) => render_downloadable(v,d.user_deck_b)}
+  {title: '玩家B', dataIndex: 'username_b', key: 'playerb', render: (v,d) => render_downloadable(v,d.user_deck_b)}
 
 ]
 export function App() {
@@ -48,8 +49,8 @@ export function App() {
   let [item_count, set_item_count] = useState(0)
   let [data, set_data] = useState<Data[]>([])
   let fetch_data = async () => {
-    fetch(import.meta.env.BASE_URL + "/match?page=" + (page).toString()).then(r => r.json()).then(r => set_data(r));
-    fetch(import.meta.env.BASE_URL + "/match/count").then(r => r.text()).then(r => set_item_count(parseInt(r)))
+    fetch((import.meta.env.PROD ? import.meta.env.BASE_URL : "") + "/match?page=" + (page).toString()).then(r => r.json()).then(r => set_data(r));
+    fetch((import.meta.env.PROD ? import.meta.env.BASE_URL : "") + "/match/count").then(r => r.text()).then(r => set_item_count(parseInt(r)))
   }
   useEffect(() => { fetch_data() }, [page])
   
