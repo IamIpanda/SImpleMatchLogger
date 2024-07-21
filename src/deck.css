@@ -1,0 +1,9 @@
+.deck {
+    display: flex;
+    flex-flow: wrap;
+    width: 440px;
+}
+
+.deck-item {
+    width: 44px;
+}

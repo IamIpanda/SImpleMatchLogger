@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'preact/hooks'
-import './app.css'
-import { Table } from 'antd'
+import { Popover, Table } from 'antd'
 import type { TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
+import { Deck } from './deck'
+
+import './app.css'
 
 type Data = {
   username_a: string,
@@ -33,7 +35,9 @@ function render_time(time1: string, time2: string) {
 }
 
 function render_downloadable(text: string, deck: string) {
-  return <div class="downloadable" onClick={download.bind(null, text + ".ydk", deck)}>{text}</div>
+  return <Popover content={<Deck deck={deck}/>} title="卡组">
+    <div class="downloadable" onClick={download.bind(null, text + ".ydk", deck)}>{text}</div>
+  </Popover>
 }
 
 const columns: TableColumnsType<Data> = [
