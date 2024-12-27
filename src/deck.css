@@ -1,3 +1,9 @@
+.deck-container {
+    display: flex;
+    position: relative;
+    flex-direction: row;
+}
+
 .deck {
     display: flex;
     flex-flow: wrap;
@@ -6,4 +12,40 @@
 
 .deck-item {
     width: 44px;
+}
+
+.effect-container {
+    position: absolute;
+    max-width: 500px;
+    box-shadow: ;
+}
+
+.effect-container.effect-container-right {
+    right: -20px;
+    transform: translateX(100%);
+}
+
+.effect-container.effect-container-left {
+    left: -20px;
+    transform: translateX(-100%);
+}
+
+.effect-container.effect-container-top {
+    width: 460px;
+    left: -10px;
+    top: -60px;
+    transform: translateY(-100%);
+}
+
+.effect-container.effect-container-bottom {
+    width: 460px;
+    left: -10px;
+    bottom: -20px;
+    transform: translateY(100%);
+}
+
+.effect {
+    max-width: 500px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
 }

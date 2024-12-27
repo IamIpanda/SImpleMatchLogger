@@ -1,4 +1,5 @@
 use std::env::var;
+use std::fs;
 use std::sync::Arc;
 use std::sync::OnceLock;
 
@@ -31,6 +32,7 @@ async fn main() {
         .route("/deck", get(query_deck))
         .route("/match", get(query_match))
         .route("/:table/count", get(query_count))
+        .route("/databases", get(get_databases))
         .fallback_service(serve);
     axum::serve(listener, app).await.ok();
 }
@@ -80,6 +82,7 @@ struct MatchRecord {
 }
 
 async fn _match(Form(record): Form<MatchRecord>) -> StatusCode {
+    println!("{:?}", record);
     if record.access_key != var("ACCESS_KEY").unwrap_or(String::new()) { return StatusCode::BAD_REQUEST }
     let connection = PG_CLIENT.get().expect("connection not inited").lock().await;
     let user_score_a = match record.user_score_a.parse::<i32>() { Ok(a) => a, Err(_) => return StatusCode::BAD_REQUEST };
@@ -96,7 +99,8 @@ async fn _match(Form(record): Form<MatchRecord>) -> StatusCode {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct SearchParameter {
-    page: i64
+    page: i64,
+    keyword: Option<String>
 }
 
 async fn query_deck(query: Query<SearchParameter>) -> (StatusCode, Json<Vec<DeckRecord>>) {
@@ -121,10 +125,15 @@ async fn query_deck(query: Query<SearchParameter>) -> (StatusCode, Json<Vec<Deck
     (StatusCode::OK, Json(records))
 }
 
+
 async fn query_match(query: Query<SearchParameter>) -> (StatusCode, Json<Vec<MatchRecord>>) {
     let offset = query.page * 20;
+    let keyword = match &query.keyword {
+        Some(s) => format!("%{}%", s.clone()),
+        None => "%".to_string()
+    };
     let connection = PG_CLIENT.get().expect("connection not inited").lock().await;
-    let rows = match connection.query("SELECT * from match order by end_time desc offset $1 limit 20", &[&offset]).await {
+    let rows = match connection.query("SELECT * from match where username_a like $1 or username_b like $1 or arena like $1 order by end_time desc offset $2 limit 20", &[&keyword, &offset]).await {
         Ok(rows) => rows,
         Err(err) => {
             eprintln!("{:?}", err);
@@ -148,14 +157,50 @@ async fn query_match(query: Query<SearchParameter>) -> (StatusCode, Json<Vec<Mat
     (StatusCode::OK, Json(records))
 }
 
-async fn query_count(Path(table): Path<String>) -> (StatusCode, Json<i64>) {
-    if table != "match" && table != "deck" { return (StatusCode::NOT_FOUND, Json(0)) }
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct CountParameter {
+    keyword: Option<String>
+}
+
+async fn query_count(Path(table): Path<String>, query: Query<CountParameter>) -> (StatusCode, Json<i64>) {
+    let sql = match table.as_str() {
+        "deck" => "SELECT count(*) from deck where player like $1 or arena like $1",
+        "match" => "SELECT count(*) from match where username_a like $1 or username_b like $1 or arena like $1",
+        _ => { return (StatusCode::NOT_FOUND, Json(0)) }
+    };
+    let keyword = match &query.keyword {
+        Some(s) => format!("%{}%", s.clone()),
+        None => "%".to_string()
+    };
     let connection = PG_CLIENT.get().expect("connection not inited").lock().await;
-    match connection.query_one(&format!("SELECT count(*) from {}", table), &[]).await {
+    match connection.query_one(sql, &[&keyword]).await {
         Ok(r) => (StatusCode::OK, Json(r.get(0))),
         Err(err) => {
             eprintln!("{:?}", err);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(0))
         }
     }
+}
+
+async fn get_databases() -> Json<Vec<String>> {
+    let names = _get_database().unwrap_or(vec![]);
+    let base_path = var("SML_DATABASE_BASE_PATH").unwrap_or("/".to_string());
+    let paths = names.into_iter().map(|s| base_path.clone() + &s).collect();
+    Json(paths)
+}
+
+fn _get_database() -> std::io::Result<Vec<String>> {
+    let current_path = std::env::current_dir()?.to_string_lossy().to_string();
+    let base_path = var("SML_DATABASE_FILE_PATH").unwrap_or(current_path);
+    let mut databases = vec![];
+    for entry in fs::read_dir(base_path)? {
+        let entry = entry?;
+        if let Ok(filename) = entry.file_name().into_string() {
+            if filename.ends_with(".cdb") {
+                databases.push(filename);  
+            }
+        }
+    }
+    Ok(databases)
 }

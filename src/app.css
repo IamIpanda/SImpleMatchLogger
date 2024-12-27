@@ -4,12 +4,16 @@
   padding: 2rem;
   text-align: center;
   width: 100%;
-  height: 100vw;
+  height: 100%;
 }
 
 .table-container {
   width: 100%;
   height: 100%;
+}
+
+.table-container .ant-input {
+  margin-bottom: 10px;
 }
 
 .ant-table-content {
@@ -20,4 +24,12 @@
 
 .downloadable {
   cursor: pointer;
+}
+
+span.highlight {
+  font-weight: bold;
+  padding-left: 2.5px;
+  padding-right: 2.5px;
+  color: orangered;
+  background-color: rgba(1, 1, 1, 0.08);
 }
